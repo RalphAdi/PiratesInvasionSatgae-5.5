@@ -33,9 +33,16 @@ function setup() {
   canvas = createCanvas(1200,600);
   engine = Engine.create();
   world = engine.world;
-  angle = -PI / 4;
-  ground = new Ground(0, height - 1, width * 2, 1);
-  tower = new Tower(150, 350, 160, 310);
+  angleMode(DEGREES)
+  angle = 15
+
+
+  ground = Bodies.rectangle(0, height - 1, width * 2, 1, { isStatic: true });
+  World.add(world, ground);
+
+  tower = Bodies.rectangle(160, 350, 160, 310, { isStatic: true });
+  World.add(world, tower);
+
   cannon = new Cannon(180, 110, 100, 50, angle);
 
   var boatFrames = boatSpritedata.frames;
@@ -65,37 +72,52 @@ function draw() {
   image(backgroundImg, 0, 0, width, height);
 
   Engine.update(engine);
-  ground.display();
+ 
+  push();
+  translate(ground.position.x, ground.position.y);
+  fill("brown");
+  rectMode(CENTER);
+  rect(0, 0, width * 2, 1);
+  pop();
+
+  push();
+  translate(tower.position.x, tower.position.y);
+  rotate(tower.angle);
+  imageMode(CENTER);
+  image(towerImage, 0, 0, 160, 310);
+  pop();
 
   showBoats();
 
-  for (var i = 0; i < balls.length; i++) {
+   for (var i = 0; i < balls.length; i++) {
     showCannonBalls(balls[i], i);
-    for (var j = 0; j < boats.length; j++) {
-      if (balls[i] !== undefined && boats[j] !== undefined) {
-        var collision = Matter.SAT.collides(balls[i].body, boats[j].body);
-        if (collision.collided) {
-          if (!boats[j].isBroken && !balls[i].isSink) {
-            score += 5;
-            boats[j].remove(j);
-            j--;
-          }
-
-          Matter.World.remove(world, balls[i].body);
-          balls.splice(i, 1);
-          i--;
-        }
-      }
-    }
+    collisionWithBoat(i);
   }
 
   cannon.display();
-  tower.display();
+  
 
   fill("#6d4c41");
   textSize(40);
   text(`Score:${score}`, width - 200, 50);
   textAlign(CENTER, CENTER);
+}
+
+function collisionWithBoat(index) {
+  for (var i = 0; i < boats.length; i++) {
+    if (balls[index] !== undefined && boats[i] !== undefined) {
+      var collision = Matter.SAT.collides(balls[index].body, boats[i].body);
+
+      if (collision.collided) {
+        score+=5
+          boats[i].remove(i);
+        
+
+        Matter.World.remove(world, balls[index].body);
+        delete balls[index];
+      }
+    }
+  }
 }
 
 function keyPressed() {
@@ -108,11 +130,12 @@ function keyPressed() {
 }
 
 function showCannonBalls(ball, index) {
-  ball.display();
-  ball.animate();
-  if (ball.body.position.x >= width || ball.body.position.y >= height - 50) {
-    if (!ball.isSink) {
-      ball.remove(index);
+  if (ball) {
+    ball.display();
+    ball.animate();
+    if (ball.body.position.x >= width || ball.body.position.y >= height - 50) {
+        ball.remove(index);
+      
     }
   }
 }
@@ -145,7 +168,7 @@ function showBoats() {
 
       boats[i].display();
       boats[i].animate();
-      var collision = Matter.SAT.collides(tower.body, boats[i].body);
+      var collision = Matter.SAT.collides(this.tower, boats[i].body);
       if (collision.collided && !boats[i].isBroken) {
         isGameOver = true;
         gameOver();
